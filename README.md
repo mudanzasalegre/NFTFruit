@@ -8,9 +8,9 @@ Imagina un mundo donde cada árbol plantado, cada fruto cosechado y cada tratami
 
 El sistema se basa en varios contratos inteligentes escritos en Solidity, que juntos crean un ecosistema completo para la gestión agrícola:
 
-- [`MainTree.sol`](./contracts/MainTree.sol): Gestiona la plantación y el mantenimiento de árboles.
+- [`MainTree.sol`](./contracts/helpers/MainTree.sol): Gestiona la plantación y el mantenimiento de árboles.
 - [`Distributor.sol`](./contracts/Distributor.sol): Permite la distribución y venta de la producción agrícola.
-- [`Variedad.sol`](./contracts/Variedad.sol): Administra las variedades de cultivos y permite la participación comunitaria.
+- [`Variedad.sol`](./contracts/helpers/Variedad.sol): Administra las variedades de cultivos y permite la participación comunitaria.
 - [`Treasury.sol`](./contracts/Treasury.sol): Gestiona los fondos y las tarifas del sistema.
 - [`NFTFruit.sol`](./contracts/NFTFruit.sol): Crea tokens no fungibles (NFTs) para representar árboles únicos.
 - [`ProductionTokenERC20.sol`](./contracts/ProductionTokenERC20.sol): Gestiona tokens ERC20 que representan unidades de producción.
