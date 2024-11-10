@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: PropietarioUnico
 pragma solidity ^0.8.28;
 
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol"; // Importar ERC721
@@ -32,7 +32,8 @@ contract AssetToken is ERC721, ERC721Burnable, AccessControl {
     // Función pública para establecer el token URI
     function setTokenURI(uint256 tokenId, string memory _tokenURI) public {
         require(
-            _isApprovedOrOwner(_msgSender(), tokenId) || hasRole(MINTER_ROLE, _msgSender()),
+            _isApprovedOrOwner(_msgSender(), tokenId) ||
+                hasRole(MINTER_ROLE, _msgSender()),
             "AssetToken: No autorizado para actualizar el token URI"
         );
         _setTokenURI(tokenId, _tokenURI);
@@ -44,14 +45,17 @@ contract AssetToken is ERC721, ERC721Burnable, AccessControl {
     }
 
     // Función interna personalizada para verificar si es aprobado o propietario
-    function _isApprovedOrOwner(address spender, uint256 tokenId) internal view virtual returns (bool) {
+    function _isApprovedOrOwner(address spender, uint256 tokenId)
+        internal
+        view
+        virtual
+        returns (bool)
+    {
         require(exists(tokenId), "AssetToken: consulta para token inexistente");
         address owner = ownerOf(tokenId);
-        return (
-            spender == owner ||
+        return (spender == owner ||
             getApproved(tokenId) == spender ||
-            isApprovedForAll(owner, spender)
-        );
+            isApprovedForAll(owner, spender));
     }
 
     // Función interna para establecer el token URI
@@ -61,7 +65,12 @@ contract AssetToken is ERC721, ERC721Burnable, AccessControl {
     }
 
     // Función para obtener el token URI
-    function tokenURI(uint256 tokenId) public view override returns (string memory) {
+    function tokenURI(uint256 tokenId)
+        public
+        view
+        override
+        returns (string memory)
+    {
         require(exists(tokenId), "AssetToken: URI query for nonexistent token");
         return _tokenURIs[tokenId];
     }

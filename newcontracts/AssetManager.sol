@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: PropietarioUnico
 pragma solidity ^0.8.28;
 
 // Importaciones necesarias
@@ -204,7 +204,10 @@ contract AssetManager is AccessControl {
             treasury.balanceOf(msg.sender) >= PRODUCER_ROLE_FEE,
             "No tienes suficientes fondos en la tesoreria"
         );
-        require(treasury.isTreasurySpender(msg.sender));
+        require(
+            treasury.isTreasurySpender(msg.sender),
+            "No tiene el rol TREASURY_SPENDER_ROLE"
+        );
 
         // Transferir fondos del usuario a la tesorería
         treasury.spendFunds(msg.sender, PRODUCER_ROLE_FEE);

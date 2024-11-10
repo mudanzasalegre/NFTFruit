@@ -1,12 +1,14 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: PropietarioUnico
 pragma solidity ^0.8.28;
 
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
 contract Treasury is AccessControl, ReentrancyGuard {
-    bytes32 public constant TREASURY_ADMIN_ROLE = keccak256("TREASURY_ADMIN_ROLE");
-    bytes32 public constant TREASURY_SPENDER_ROLE = keccak256("TREASURY_SPENDER_ROLE");
+    bytes32 public constant TREASURY_ADMIN_ROLE =
+        keccak256("TREASURY_ADMIN_ROLE");
+    bytes32 public constant TREASURY_SPENDER_ROLE =
+        keccak256("TREASURY_SPENDER_ROLE");
 
     // Mapeo de balances de usuarios
     mapping(address => uint256) private userBalances;
@@ -49,11 +51,21 @@ contract Treasury is AccessControl, ReentrancyGuard {
     }
 
     // Función para que contratos autorizados gasten fondos del usuario
-    function spendFunds(address user, uint256 amount) external onlyRole(TREASURY_SPENDER_ROLE) {
-        require(userBalances[user] >= amount, "Fondos insuficientes del usuario");
+    function spendFunds(address user, uint256 amount)
+        external
+        onlyRole(TREASURY_SPENDER_ROLE)
+    {
+        require(
+            userBalances[user] >= amount,
+            "Fondos insuficientes del usuario"
+        );
         userBalances[user] -= amount;
         totalUserBalance -= amount; // Actualizar el total de balances de usuarios
-        emit FundsSpent(user, amount, "Fondos gastados por contrato autorizado");
+        emit FundsSpent(
+            user,
+            amount,
+            "Fondos gastados por contrato autorizado"
+        );
     }
 
     // Función para obtener el balance de un usuario
@@ -67,7 +79,11 @@ contract Treasury is AccessControl, ReentrancyGuard {
     }
 
     // Función para que el administrador reclame los fondos de la tesorería
-    function claimTreasury(address payable _to) external nonReentrant onlyRole(TREASURY_ADMIN_ROLE) {
+    function claimTreasury(address payable _to)
+        external
+        nonReentrant
+        onlyRole(TREASURY_ADMIN_ROLE)
+    {
         require(_to != address(0), "La direccion no puede ser cero");
         uint256 amount = address(this).balance - totalUserBalance;
         require(amount > 0, "No hay fondos en tesoreria para reclamar");
@@ -79,11 +95,17 @@ contract Treasury is AccessControl, ReentrancyGuard {
     }
 
     // Funciones para gestionar roles de administrador
-    function addTreasuryAdmin(address account) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function addTreasuryAdmin(address account)
+        external
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {
         _grantRole(TREASURY_ADMIN_ROLE, account);
     }
 
-    function removeTreasuryAdmin(address account) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function removeTreasuryAdmin(address account)
+        external
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {
         _revokeRole(TREASURY_ADMIN_ROLE, account);
     }
 
@@ -92,11 +114,17 @@ contract Treasury is AccessControl, ReentrancyGuard {
     }
 
     // Funciones para gestionar el rol de gastador
-    function addTreasurySpender(address account) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function addTreasurySpender(address account)
+        external
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {
         _grantRole(TREASURY_SPENDER_ROLE, account);
     }
 
-    function removeTreasurySpender(address account) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function removeTreasurySpender(address account)
+        external
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {
         _revokeRole(TREASURY_SPENDER_ROLE, account);
     }
 
@@ -106,8 +134,14 @@ contract Treasury is AccessControl, ReentrancyGuard {
 
     // Función para que un usuario pueda comprar el rol de gastador
     function claimTreasurySpender() external payable {
-        require(msg.value == SPENDER_ROLE_FEE, "Debe enviar exactamente el SPENDER_ROLE_FEE");
-        require(!hasRole(TREASURY_SPENDER_ROLE, msg.sender), "Ya tienes el rol de gastador");
+        require(
+            msg.value == SPENDER_ROLE_FEE,
+            "Debe enviar exactamente el SPENDER_ROLE_FEE"
+        );
+        require(
+            !hasRole(TREASURY_SPENDER_ROLE, msg.sender),
+            "Ya tienes el rol de gastador"
+        );
 
         // Los fondos recibidos se agregan a la tesorería pero no al balance del usuario
         emit FundsDeposited(msg.sender, msg.value);
@@ -120,8 +154,21 @@ contract Treasury is AccessControl, ReentrancyGuard {
     }
 
     // Función para que el administrador pueda actualizar la tarifa del rol de gastador
-    function setSpenderRoleFee(uint256 newFee) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function setSpenderRoleFee(uint256 newFee)
+        external
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {
         SPENDER_ROLE_FEE = newFee;
         emit SpenderRoleFeeUpdated(newFee);
+    }
+
+    function depositTo(address user, uint256 amount) external payable {
+        require(
+            msg.value == amount,
+            "El valor enviado no coincide con el monto"
+        );
+        userBalances[user] += amount;
+        totalUserBalance += amount;
+        emit FundsDeposited(user, amount);
     }
 }
