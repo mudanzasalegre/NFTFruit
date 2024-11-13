@@ -7,13 +7,17 @@ import "./EUDRCompliance.sol";
 
 contract ProductionTokenERC20 is ERC20, AccessControl {
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
-    bytes32 public constant COMPLIANCE_VERIFIER_ROLE = keccak256("COMPLIANCE_VERIFIER_ROLE");
+    bytes32 public constant COMPLIANCE_VERIFIER_ROLE =
+        keccak256("COMPLIANCE_VERIFIER_ROLE");
 
     // Referencia al contrato de cumplimiento EUDR
     EUDRCompliance public eudrCompliance;
 
     // Constructor
-    constructor(address admin, address eudrComplianceAddress) ERC20("ProductionToken", "PTK") {
+    constructor(
+        address admin,
+        address eudrComplianceAddress
+    ) ERC20("ProductionToken", "PTK") {
         _grantRole(DEFAULT_ADMIN_ROLE, admin);
         _grantRole(MINTER_ROLE, admin);
         _grantRole(COMPLIANCE_VERIFIER_ROLE, admin);
@@ -23,7 +27,11 @@ contract ProductionTokenERC20 is ERC20, AccessControl {
     }
 
     // Función para acuñar nuevos tokens
-    function mint(address to, uint256 amount, uint256 assetId) public onlyRole(MINTER_ROLE) {
+    function mint(
+        address to,
+        uint256 amount,
+        uint256 assetId
+    ) public onlyRole(MINTER_ROLE) {
         // Verificar cumplimiento EUDR antes de acuñar tokens
         require(
             eudrCompliance.isAssetEUDRCompliant(assetId),
@@ -38,11 +46,15 @@ contract ProductionTokenERC20 is ERC20, AccessControl {
     }
 
     // Función para agregar y remover verificadores de cumplimiento (solo administrador)
-    function addComplianceVerifier(address account) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function addComplianceVerifier(
+        address account
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         _grantRole(COMPLIANCE_VERIFIER_ROLE, account);
     }
 
-    function removeComplianceVerifier(address account) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function removeComplianceVerifier(
+        address account
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         _revokeRole(COMPLIANCE_VERIFIER_ROLE, account);
     }
 

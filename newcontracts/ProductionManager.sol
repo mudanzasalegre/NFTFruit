@@ -150,11 +150,10 @@ contract ProductionManager is AccessControl {
     }
 
     // Función para aplicar un tratamiento
-    function applyTreatment(uint256 _assetId, string memory _description)
-        public
-        onlyAssetOwner(_assetId)
-        returns (uint256)
-    {
+    function applyTreatment(
+        uint256 _assetId,
+        string memory _description
+    ) public onlyAssetOwner(_assetId) returns (uint256) {
         _treatmentIds.increment();
         uint256 newTreatmentId = _treatmentIds.current();
 
@@ -181,11 +180,9 @@ contract ProductionManager is AccessControl {
     }
 
     // Función para obtener las producciones de un activo
-    function getProductionsByAsset(uint256 _assetId)
-        public
-        view
-        returns (Production[] memory)
-    {
+    function getProductionsByAsset(
+        uint256 _assetId
+    ) public view returns (Production[] memory) {
         uint256[] memory productionIds = assetProductions[_assetId];
         Production[] memory assetProductionList = new Production[](
             productionIds.length
@@ -199,11 +196,9 @@ contract ProductionManager is AccessControl {
     }
 
     // Función para obtener los tratamientos de un activo
-    function getTreatmentsByAsset(uint256 _assetId)
-        public
-        view
-        returns (Treatment[] memory)
-    {
+    function getTreatmentsByAsset(
+        uint256 _assetId
+    ) public view returns (Treatment[] memory) {
         uint256[] memory treatmentIds = assetTreatments[_assetId];
         Treatment[] memory assetTreatmentList = new Treatment[](
             treatmentIds.length

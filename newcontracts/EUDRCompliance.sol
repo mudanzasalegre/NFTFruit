@@ -53,27 +53,38 @@ contract EUDRCompliance is AccessControl {
     }
 
     // Funciones para agregar y remover inspectores (solo administrador)
-    function addInspector(address account) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function addInspector(
+        address account
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         _grantRole(INSPECTOR_ROLE, account);
     }
 
-    function removeInspector(address account) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function removeInspector(
+        address account
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         _revokeRole(INSPECTOR_ROLE, account);
     }
 
     // Modificador para verificar si una dirección tiene el rol de productor
     modifier onlyProducer(address account) {
-        require(hasRole(PRODUCER_ROLE, account), "EUDRCompliance: No eres productor autorizado");
+        require(
+            hasRole(PRODUCER_ROLE, account),
+            "EUDRCompliance: No eres productor autorizado"
+        );
         _;
     }
 
     // Funciones para agregar y remover productores (solo administrador)
-    function addProducer(address account) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function addProducer(
+        address account
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         _grantRole(PRODUCER_ROLE, account);
         producerComplianceStatus[account] = false; // Iniciar con no cumplimiento
     }
 
-    function removeProducer(address account) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function removeProducer(
+        address account
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         _revokeRole(PRODUCER_ROLE, account);
         delete producerComplianceStatus[account];
     }
@@ -110,8 +121,14 @@ contract EUDRCompliance is AccessControl {
     }
 
     // Función para actualizar el estado de cumplimiento de un productor
-    function updateProducerCompliance(address producer, bool isCompliant) external onlyRole(INSPECTOR_ROLE) {
-        require(hasRole(PRODUCER_ROLE, producer), "EUDRCompliance: Direccion no es un productor registrado");
+    function updateProducerCompliance(
+        address producer,
+        bool isCompliant
+    ) external onlyRole(INSPECTOR_ROLE) {
+        require(
+            hasRole(PRODUCER_ROLE, producer),
+            "EUDRCompliance: Direccion no es un productor registrado"
+        );
         producerComplianceStatus[producer] = isCompliant;
 
         emit ProducerComplianceUpdated(producer, isCompliant, block.timestamp);
@@ -123,7 +140,9 @@ contract EUDRCompliance is AccessControl {
     }
 
     // Función para obtener todas las verificaciones de un activo
-    function getComplianceRecords(uint256 assetId) external view returns (ComplianceVerification[] memory) {
+    function getComplianceRecords(
+        uint256 assetId
+    ) external view returns (ComplianceVerification[] memory) {
         return complianceRecords[assetId];
     }
 

@@ -146,10 +146,10 @@ contract AssetManager is AccessControl {
     }
 
     // Función para transferir un activo a otro propietario
-    function transferAsset(address _to, uint256 _assetId)
-        public
-        onlyAssetOwner(_assetId)
-    {
+    function transferAsset(
+        address _to,
+        uint256 _assetId
+    ) public onlyAssetOwner(_assetId) {
         require(_to != address(0), "La direccion no puede ser cero");
 
         // Transferir el NFT utilizando AssetToken
@@ -163,10 +163,10 @@ contract AssetManager is AccessControl {
     }
 
     // Función para actualizar metadatos del activo
-    function updateAssetMetadata(uint256 _assetId, string memory _metadataURI)
-        public
-        onlyAssetOwner(_assetId)
-    {
+    function updateAssetMetadata(
+        uint256 _assetId,
+        string memory _metadataURI
+    ) public onlyAssetOwner(_assetId) {
         // Actualizar el token URI utilizando AssetToken
         assetToken.setTokenURI(_assetId, _metadataURI);
 
@@ -175,10 +175,10 @@ contract AssetManager is AccessControl {
     }
 
     // Función para actualizar el cumplimiento con EUDR de un activo
-    function updateEUDRCompliance(uint256 _assetId, bool _compliant)
-        public
-        onlyRole(DEFAULT_ADMIN_ROLE)
-    {
+    function updateEUDRCompliance(
+        uint256 _assetId,
+        bool _compliant
+    ) public onlyRole(DEFAULT_ADMIN_ROLE) {
         assets[_assetId].eudrCompliant = _compliant;
         emit AssetEUDRComplianceUpdated(_assetId, _compliant);
     }
@@ -190,19 +190,17 @@ contract AssetManager is AccessControl {
     }
 
     // Función para agregar un nuevo productor (solo administrador)
-    function addProducer(address _account)
-        external
-        onlyRole(DEFAULT_ADMIN_ROLE)
-    {
+    function addProducer(
+        address _account
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         _grantRole(PRODUCER_ROLE, _account);
         treasury.addTreasurySpender(_account);
     }
 
     // Función para remover un productor (solo administrador)
-    function removeProducer(address _account)
-        external
-        onlyRole(DEFAULT_ADMIN_ROLE)
-    {
+    function removeProducer(
+        address _account
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         _revokeRole(PRODUCER_ROLE, _account);
         treasury.removeTreasurySpender(_account);
     }
@@ -238,19 +236,17 @@ contract AssetManager is AccessControl {
     }
 
     // Función para que el administrador pueda actualizar la tarifa del rol de productor
-    function setProducerRoleFee(uint256 newFee)
-        external
-        onlyRole(DEFAULT_ADMIN_ROLE)
-    {
+    function setProducerRoleFee(
+        uint256 newFee
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         PRODUCER_ROLE_FEE = newFee;
         emit FeesUpdated("PRODUCER_ROLE_FEE", newFee);
     }
 
     // Función para que el administrador pueda actualizar la tarifa de creación de activo
-    function setCreateAssetFee(uint256 newFee)
-        external
-        onlyRole(DEFAULT_ADMIN_ROLE)
-    {
+    function setCreateAssetFee(
+        uint256 newFee
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         CREATE_ASSET_FEE = newFee;
         emit FeesUpdated("CREATE_ASSET_FEE", newFee);
     }

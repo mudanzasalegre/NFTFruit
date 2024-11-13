@@ -17,11 +17,14 @@ contract AssetToken is ERC721, ERC721Burnable, AccessControl {
     mapping(uint256 => string) private _tokenURIs;
 
     // Constructor
-    constructor(address admin, address eudrComplianceAddress) ERC721("AssetToken", "ATK") {
+    constructor(
+        address admin,
+        address eudrComplianceAddress
+    ) ERC721("AssetToken", "ATK") {
         // Configurar roles
         _grantRole(DEFAULT_ADMIN_ROLE, admin);
         _grantRole(MINTER_ROLE, admin);
-        
+
         // Establecer la referencia al contrato EUDRCompliance
         eudrCompliance = EUDRCompliance(eudrComplianceAddress);
     }
@@ -45,7 +48,8 @@ contract AssetToken is ERC721, ERC721Burnable, AccessControl {
     // Función pública para establecer el token URI
     function setTokenURI(uint256 tokenId, string memory _tokenURI) public {
         require(
-            _isApprovedOrOwner(_msgSender(), tokenId) || hasRole(MINTER_ROLE, _msgSender()),
+            _isApprovedOrOwner(_msgSender(), tokenId) ||
+                hasRole(MINTER_ROLE, _msgSender()),
             "AssetToken: No autorizado para actualizar el token URI"
         );
         _setTokenURI(tokenId, _tokenURI);
@@ -57,14 +61,15 @@ contract AssetToken is ERC721, ERC721Burnable, AccessControl {
     }
 
     // Función interna personalizada para verificar si es aprobado o propietario
-    function _isApprovedOrOwner(address spender, uint256 tokenId) internal view virtual returns (bool) {
+    function _isApprovedOrOwner(
+        address spender,
+        uint256 tokenId
+    ) internal view virtual returns (bool) {
         require(exists(tokenId), "AssetToken: consulta para token inexistente");
         address owner = ownerOf(tokenId);
-        return (
-            spender == owner ||
+        return (spender == owner ||
             getApproved(tokenId) == spender ||
-            isApprovedForAll(owner, spender)
-        );
+            isApprovedForAll(owner, spender));
     }
 
     // Función interna para establecer el token URI
@@ -74,18 +79,17 @@ contract AssetToken is ERC721, ERC721Burnable, AccessControl {
     }
 
     // Función para obtener el token URI
-    function tokenURI(uint256 tokenId) public view override returns (string memory) {
+    function tokenURI(
+        uint256 tokenId
+    ) public view override returns (string memory) {
         require(exists(tokenId), "AssetToken: URI query for nonexistent token");
         return _tokenURIs[tokenId];
     }
 
     // Override de supportsInterface para resolver la ambigüedad
-    function supportsInterface(bytes4 interfaceId)
-        public
-        view
-        override(ERC721, AccessControl)
-        returns (bool)
-    {
+    function supportsInterface(
+        bytes4 interfaceId
+    ) public view override(ERC721, AccessControl) returns (bool) {
         return super.supportsInterface(interfaceId);
     }
 }

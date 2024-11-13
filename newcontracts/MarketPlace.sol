@@ -13,7 +13,7 @@ contract Marketplace is AccessControl, ReentrancyGuard {
     // Definición de roles
     bytes32 public constant PRODUCER_ROLE = keccak256("PRODUCER_ROLE");
     bytes32 public constant DISTRIBUTOR_ROLE = keccak256("DISTRIBUTOR_ROLE");
-    
+
     // Referencia al token ERC-20
     ProductionTokenERC20 public productionToken;
 
@@ -79,10 +79,11 @@ contract Marketplace is AccessControl, ReentrancyGuard {
     }
 
     // Función para crear un listado en el marketplace
-    function createListing(uint256 assetId, uint256 amount, uint256 pricePerToken)
-        external
-        nonReentrant
-    {
+    function createListing(
+        uint256 assetId,
+        uint256 amount,
+        uint256 pricePerToken
+    ) external nonReentrant {
         require(
             productionToken.balanceOf(msg.sender) >= amount,
             "No tienes suficientes tokens de produccion"
@@ -109,7 +110,13 @@ contract Marketplace is AccessControl, ReentrancyGuard {
         });
 
         // Emitir evento
-        emit ListingCreated(_listingCounter, msg.sender, assetId, amount, pricePerToken);
+        emit ListingCreated(
+            _listingCounter,
+            msg.sender,
+            assetId,
+            amount,
+            pricePerToken
+        );
     }
 
     // Funcion para cancelar un listado
@@ -129,15 +136,17 @@ contract Marketplace is AccessControl, ReentrancyGuard {
     }
 
     // Funcion para comprar tokens de un listado
-    function purchaseTokens(uint256 listingId, uint256 amount)
-        external
-        payable
-        nonReentrant
-    {
+    function purchaseTokens(
+        uint256 listingId,
+        uint256 amount
+    ) external payable nonReentrant {
         Listing storage listing = listings[listingId];
         require(listing.isActive, "El listado no esta activo");
         require(amount > 0, "La cantidad debe ser mayor a cero");
-        require(listing.amount >= amount, "Cantidad insuficiente en el listado");
+        require(
+            listing.amount >= amount,
+            "Cantidad insuficiente en el listado"
+        );
 
         uint256 totalPrice = amount * listing.pricePerToken;
         require(msg.value == totalPrice, "El pago enviado es incorrecto");
@@ -162,15 +171,16 @@ contract Marketplace is AccessControl, ReentrancyGuard {
     }
 
     // Funcion para agregar un distribuidor (solo administrador)
-    function addDistributor(address account) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function addDistributor(
+        address account
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         _grantRole(DISTRIBUTOR_ROLE, account);
     }
 
     // Función para remover un distribuidor (solo administrador)
-    function removeDistributor(address account)
-        external
-        onlyRole(DEFAULT_ADMIN_ROLE)
-    {
+    function removeDistributor(
+        address account
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         _revokeRole(DISTRIBUTOR_ROLE, account);
     }
 
