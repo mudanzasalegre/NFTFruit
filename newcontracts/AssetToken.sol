@@ -1,22 +1,29 @@
 // SPDX-License-Identifier: PropietarioUnico
 pragma solidity ^0.8.28;
 
-import "@openzeppelin/contracts/token/ERC721/ERC721.sol"; // Importar ERC721
+import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Burnable.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
+import "./EUDRCompliance.sol";
 
 contract AssetToken is ERC721, ERC721Burnable, AccessControl {
     // Definición de roles
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
 
+    // Referencia al contrato de cumplimiento EUDR
+    EUDRCompliance public eudrCompliance;
+
     // Mapeo de token ID a token URI
     mapping(uint256 => string) private _tokenURIs;
 
     // Constructor
-    constructor(address admin) ERC721("AssetToken", "ATK") {
+    constructor(address admin, address eudrComplianceAddress) ERC721("AssetToken", "ATK") {
         // Configurar roles
         _grantRole(DEFAULT_ADMIN_ROLE, admin);
         _grantRole(MINTER_ROLE, admin);
+        
+        // Establecer la referencia al contrato EUDRCompliance
+        eudrCompliance = EUDRCompliance(eudrComplianceAddress);
     }
 
     // Función para acuñar nuevos tokens
@@ -25,6 +32,12 @@ contract AssetToken is ERC721, ERC721Burnable, AccessControl {
         uint256 tokenId,
         string memory tokenURI_
     ) public onlyRole(MINTER_ROLE) {
+        // Verificar cumplimiento EUDR antes de acuñar
+        require(
+            eudrCompliance.isAssetEUDRCompliant(tokenId),
+            "AssetToken: El activo no cumple con la normativa EUDR"
+        );
+
         _safeMint(to, tokenId);
         _setTokenURI(tokenId, tokenURI_);
     }
@@ -32,8 +45,7 @@ contract AssetToken is ERC721, ERC721Burnable, AccessControl {
     // Función pública para establecer el token URI
     function setTokenURI(uint256 tokenId, string memory _tokenURI) public {
         require(
-            _isApprovedOrOwner(_msgSender(), tokenId) ||
-                hasRole(MINTER_ROLE, _msgSender()),
+            _isApprovedOrOwner(_msgSender(), tokenId) || hasRole(MINTER_ROLE, _msgSender()),
             "AssetToken: No autorizado para actualizar el token URI"
         );
         _setTokenURI(tokenId, _tokenURI);
@@ -45,17 +57,14 @@ contract AssetToken is ERC721, ERC721Burnable, AccessControl {
     }
 
     // Función interna personalizada para verificar si es aprobado o propietario
-    function _isApprovedOrOwner(address spender, uint256 tokenId)
-        internal
-        view
-        virtual
-        returns (bool)
-    {
+    function _isApprovedOrOwner(address spender, uint256 tokenId) internal view virtual returns (bool) {
         require(exists(tokenId), "AssetToken: consulta para token inexistente");
         address owner = ownerOf(tokenId);
-        return (spender == owner ||
+        return (
+            spender == owner ||
             getApproved(tokenId) == spender ||
-            isApprovedForAll(owner, spender));
+            isApprovedForAll(owner, spender)
+        );
     }
 
     // Función interna para establecer el token URI
@@ -65,12 +74,7 @@ contract AssetToken is ERC721, ERC721Burnable, AccessControl {
     }
 
     // Función para obtener el token URI
-    function tokenURI(uint256 tokenId)
-        public
-        view
-        override
-        returns (string memory)
-    {
+    function tokenURI(uint256 tokenId) public view override returns (string memory) {
         require(exists(tokenId), "AssetToken: URI query for nonexistent token");
         return _tokenURIs[tokenId];
     }

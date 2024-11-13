@@ -4,6 +4,7 @@ pragma solidity ^0.8.28;
 // Importaciones necesarias
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
+import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "./AssetToken.sol";
 import "./Treasury.sol";
 
@@ -24,6 +25,10 @@ contract AssetManager is AccessControl {
     enum AssetType {
         Tree,
         CoffeePlant,
+        Rubber,
+        Soy,
+        Timber,
+        Cocoa,
         Other
     }
 
@@ -45,6 +50,7 @@ contract AssetManager is AccessControl {
         string class;
         Location location;
         address owner;
+        bool eudrCompliant; // Cumplimiento con EUDR
     }
 
     // Mapeo de assetId a Asset
@@ -71,6 +77,7 @@ contract AssetManager is AccessControl {
     event AssetMetadataUpdated(uint256 indexed assetId, string metadataURI);
     event ProducerRolePurchased(address indexed account);
     event FeesUpdated(string feeType, uint256 newFee);
+    event AssetEUDRComplianceUpdated(uint256 indexed assetId, bool compliant);
 
     // Constructor
     constructor(
@@ -104,7 +111,8 @@ contract AssetManager is AccessControl {
         string memory _variety,
         string memory _class,
         Location memory _location,
-        string memory _metadataURI
+        string memory _metadataURI,
+        bool _eudrCompliant
     ) public onlyRole(PRODUCER_ROLE) returns (uint256) {
         require(
             treasury.balanceOf(msg.sender) >= CREATE_ASSET_FEE,
@@ -124,7 +132,8 @@ contract AssetManager is AccessControl {
             variety: _variety,
             class: _class,
             location: _location,
-            owner: msg.sender
+            owner: msg.sender,
+            eudrCompliant: _eudrCompliant
         });
 
         // Acuñar un NFT representando el activo utilizando AssetToken
@@ -163,6 +172,15 @@ contract AssetManager is AccessControl {
 
         // Emitir evento
         emit AssetMetadataUpdated(_assetId, _metadataURI);
+    }
+
+    // Función para actualizar el cumplimiento con EUDR de un activo
+    function updateEUDRCompliance(uint256 _assetId, bool _compliant)
+        public
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {
+        assets[_assetId].eudrCompliant = _compliant;
+        emit AssetEUDRComplianceUpdated(_assetId, _compliant);
     }
 
     // Función para obtener información completa de un activo

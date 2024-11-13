@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: PropietarioUnico
 pragma solidity ^0.8.28;
 
 // Importaciones necesarias
@@ -7,15 +7,13 @@ import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "./ProductionTokenERC20.sol";
 import "./ProductionManager.sol";
 import "./Treasury.sol";
+import "./EUDRCompliance.sol";
 
 contract Marketplace is AccessControl, ReentrancyGuard {
     // Definición de roles
     bytes32 public constant PRODUCER_ROLE = keccak256("PRODUCER_ROLE");
     bytes32 public constant DISTRIBUTOR_ROLE = keccak256("DISTRIBUTOR_ROLE");
-
-    // Tarifas
-    uint256 public DISTRIBUTOR_ROLE_FEE = 0.1 ether;
-
+    
     // Referencia al token ERC-20
     ProductionTokenERC20 public productionToken;
 
@@ -25,10 +23,14 @@ contract Marketplace is AccessControl, ReentrancyGuard {
     // Referencia al contrato Treasury
     Treasury public treasury;
 
+    // Referencia al contrato EUDRCompliance
+    EUDRCompliance public eudrCompliance;
+
     // Estructura para los listados en el marketplace
     struct Listing {
         uint256 listingId;
         address seller;
+        uint256 assetId; // Activo vinculado a la producción
         uint256 amount; // Cantidad de tokens en venta
         uint256 pricePerToken; // Precio en ETH por token
         bool isActive;
@@ -44,11 +46,11 @@ contract Marketplace is AccessControl, ReentrancyGuard {
     event ListingCreated(
         uint256 indexed listingId,
         address indexed seller,
+        uint256 assetId,
         uint256 amount,
         uint256 pricePerToken
     );
     event ListingCancelled(uint256 indexed listingId, address indexed seller);
-    event DistributorRolePurchased(address indexed account);
     event TokensPurchased(
         uint256 indexed listingId,
         address indexed buyer,
@@ -61,7 +63,8 @@ contract Marketplace is AccessControl, ReentrancyGuard {
         address admin,
         address productionTokenAddress,
         address productionManagerAddress,
-        address treasuryAddress
+        address treasuryAddress,
+        address eudrComplianceAddress
     ) {
         // Configurar roles
         _grantRole(DEFAULT_ADMIN_ROLE, admin);
@@ -72,45 +75,11 @@ contract Marketplace is AccessControl, ReentrancyGuard {
         productionToken = ProductionTokenERC20(productionTokenAddress);
         productionManager = ProductionManager(productionManagerAddress);
         treasury = Treasury(treasuryAddress);
-    }
-
-    // Modificador para verificar si el llamante es un distribuidor o consumidor
-    modifier onlyBuyer() {
-        require(
-            hasRole(DISTRIBUTOR_ROLE, msg.sender) ||
-                hasRole(DEFAULT_ADMIN_ROLE, msg.sender),
-            "No tienes permiso para comprar tokens"
-        );
-        _;
-    }
-
-    // Función para que un usuario pueda comprar el rol de productor
-    function buyDistributorRole() external {
-        require(
-            !hasRole(DISTRIBUTOR_ROLE, msg.sender),
-            "Ya tienes el rol de distribuidor"
-        );
-        require(
-            treasury.balanceOf(msg.sender) >= DISTRIBUTOR_ROLE_FEE,
-            "No tienes suficientes fondos en la tesoreria"
-        );
-        require(
-            treasury.isTreasurySpender(msg.sender),
-            "No tiene el rol TREASURY_SPENDER_ROLE"
-        );
-
-        // Transferir fondos del usuario a la tesorería
-        treasury.spendFunds(msg.sender, DISTRIBUTOR_ROLE_FEE);
-
-        // Otorgar el rol de productor
-        _grantRole(DISTRIBUTOR_ROLE, msg.sender);
-
-        // Emitir evento
-        emit DistributorRolePurchased(msg.sender);
+        eudrCompliance = EUDRCompliance(eudrComplianceAddress);
     }
 
     // Función para crear un listado en el marketplace
-    function createListing(uint256 amount, uint256 pricePerToken)
+    function createListing(uint256 assetId, uint256 amount, uint256 pricePerToken)
         external
         nonReentrant
     {
@@ -120,33 +89,27 @@ contract Marketplace is AccessControl, ReentrancyGuard {
         );
         require(amount > 0, "La cantidad debe ser mayor a cero");
         require(pricePerToken > 0, "El precio por token debe ser mayor a cero");
-
-        // Aprobacion de tokens
         require(
-            productionToken.allowance(msg.sender, address(this)) >= amount,
-            "Debes aprobar al marketplace para transferir tus tokens"
+            eudrCompliance.isAssetEUDRCompliant(assetId),
+            "El activo no cumple con la normativa EUDR"
         );
 
         // Transferir los tokens al contrato del marketplace para custodia
-        bool success = productionToken.transferFrom(
-            msg.sender,
-            address(this),
-            amount
-        );
-        require(success, "Error al transferir tokens al marketplace");
+        productionToken.transferFrom(msg.sender, address(this), amount);
 
         // Crear el nuevo listado
         _listingCounter++;
         listings[_listingCounter] = Listing({
             listingId: _listingCounter,
             seller: msg.sender,
+            assetId: assetId,
             amount: amount,
             pricePerToken: pricePerToken,
             isActive: true
         });
 
         // Emitir evento
-        emit ListingCreated(_listingCounter, msg.sender, amount, pricePerToken);
+        emit ListingCreated(_listingCounter, msg.sender, assetId, amount, pricePerToken);
     }
 
     // Funcion para cancelar un listado
@@ -159,8 +122,7 @@ contract Marketplace is AccessControl, ReentrancyGuard {
         listing.isActive = false;
 
         // Devolver los tokens al vendedor
-        bool success = productionToken.transfer(listing.seller, listing.amount);
-        require(success, "Error al devolver tokens al vendedor");
+        productionToken.transfer(listing.seller, listing.amount);
 
         // Emitir evento
         emit ListingCancelled(listingId, msg.sender);
@@ -169,27 +131,16 @@ contract Marketplace is AccessControl, ReentrancyGuard {
     // Funcion para comprar tokens de un listado
     function purchaseTokens(uint256 listingId, uint256 amount)
         external
+        payable
         nonReentrant
     {
         Listing storage listing = listings[listingId];
         require(listing.isActive, "El listado no esta activo");
         require(amount > 0, "La cantidad debe ser mayor a cero");
-        require(
-            listing.amount >= amount,
-            "Cantidad insuficiente en el listado"
-        );
+        require(listing.amount >= amount, "Cantidad insuficiente en el listado");
 
         uint256 totalPrice = amount * listing.pricePerToken;
-
-        // Verificar que el comprador tiene fondos suficientes en la tesorería
-        require(
-            treasury.balanceOf(msg.sender) >= totalPrice,
-            "Fondos insuficientes en la tesoreria"
-        );
-
-        // Transferir fondos del comprador al vendedor a través de la tesorería
-        treasury.spendFunds(msg.sender, totalPrice);
-        treasury.depositTo{value: 0}(listing.seller, totalPrice);
+        require(msg.value == totalPrice, "El pago enviado es incorrecto");
 
         // Actualizar la cantidad restante en el listado
         listing.amount -= amount;
@@ -200,38 +151,31 @@ contract Marketplace is AccessControl, ReentrancyGuard {
         }
 
         // Transferir los tokens al comprador
-        bool success = productionToken.transfer(msg.sender, amount);
-        require(success, "Error al transferir tokens al comprador");
+        productionToken.transfer(msg.sender, amount);
+
+        // Transferir el pago al vendedor
+        (bool success, ) = payable(listing.seller).call{value: msg.value}("");
+        require(success, "Error al transferir el pago al vendedor");
 
         // Emitir evento
         emit TokensPurchased(listingId, msg.sender, amount, totalPrice);
     }
 
     // Funcion para agregar un distribuidor (solo administrador)
-    function addDistributor(address account)
-        external
-        onlyRole(DEFAULT_ADMIN_ROLE)
-    {
+    function addDistributor(address account) external onlyRole(DEFAULT_ADMIN_ROLE) {
         _grantRole(DISTRIBUTOR_ROLE, account);
-        treasury.addTreasurySpender(account);
     }
 
-    // Funcion para remover un distribuidor (solo administrador)
+    // Función para remover un distribuidor (solo administrador)
     function removeDistributor(address account)
         external
         onlyRole(DEFAULT_ADMIN_ROLE)
     {
         _revokeRole(DISTRIBUTOR_ROLE, account);
-        treasury.removeTreasurySpender(account);
     }
 
-    // Funcion para verificar si una direccion tiene el rol de distribuidor
+    // Función para verificar si una dirección tiene el rol de distribuidor
     function isDistributor(address account) external view returns (bool) {
         return hasRole(DISTRIBUTOR_ROLE, account);
-    }
-
-    // Funcion para permitir depósitos directos a la tesorería del vendedor
-    receive() external payable {
-        // Esta función permite que el contrato reciba ETH, necesario para depositar en la tesorería
     }
 }

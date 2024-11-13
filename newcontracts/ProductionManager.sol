@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: PropietarioUnico
 pragma solidity ^0.8.28;
 
 // Importaciones necesarias
@@ -7,6 +7,7 @@ import "@openzeppelin/contracts/utils/Counters.sol";
 import "./AssetManager.sol";
 import "./AssetToken.sol";
 import "./ProductionTokenERC20.sol";
+import "./EUDRCompliance.sol";
 
 contract ProductionManager is AccessControl {
     using Counters for Counters.Counter;
@@ -23,6 +24,9 @@ contract ProductionManager is AccessControl {
     // Referencia al token ERC-20
     ProductionTokenERC20 public productionToken;
 
+    // Referencia al contrato de cumplimiento EUDR
+    EUDRCompliance public eudrCompliance;
+
     // Contador para IDs únicos de producción
     Counters.Counter private _productionIds;
 
@@ -33,6 +37,7 @@ contract ProductionManager is AccessControl {
         uint256 quantity;
         string unit; // Unidad de medida (por ejemplo, kg, toneladas)
         uint256 timestamp;
+        bool eudrCompliant; // Cumplimiento con la normativa EUDR
     }
 
     // Estructura para un tratamiento
@@ -64,7 +69,8 @@ contract ProductionManager is AccessControl {
         uint256 indexed assetId,
         uint256 quantity,
         string unit,
-        uint256 timestamp
+        uint256 timestamp,
+        bool eudrCompliant
     );
 
     event TreatmentApplied(
@@ -79,7 +85,8 @@ contract ProductionManager is AccessControl {
         address admin,
         address assetManagerAddress,
         address assetTokenAddress,
-        address productionTokenAddress
+        address productionTokenAddress,
+        address eudrComplianceAddress
     ) {
         // Configurar roles
         _grantRole(DEFAULT_ADMIN_ROLE, admin);
@@ -89,6 +96,7 @@ contract ProductionManager is AccessControl {
         assetManager = AssetManager(assetManagerAddress);
         assetToken = AssetToken(assetTokenAddress);
         productionToken = ProductionTokenERC20(productionTokenAddress);
+        eudrCompliance = EUDRCompliance(eudrComplianceAddress);
     }
 
     // Modificador para verificar el propietario del activo
@@ -109,20 +117,24 @@ contract ProductionManager is AccessControl {
         _productionIds.increment();
         uint256 newProductionId = _productionIds.current();
 
+        // Verificar el cumplimiento con la normativa EUDR
+        bool isEUDRCompliant = eudrCompliance.isAssetEUDRCompliant(_assetId);
+
         // Registrar la producción
         productions[newProductionId] = Production({
             productionId: newProductionId,
             assetId: _assetId,
             quantity: _quantity,
             unit: _unit,
-            timestamp: block.timestamp
+            timestamp: block.timestamp,
+            eudrCompliant: isEUDRCompliant
         });
 
         // Asociar la producción al activo
         assetProductions[_assetId].push(newProductionId);
 
-        // Acuñar tokens ERC-20 al propietario
-        productionToken.mint(msg.sender, _quantity);
+        // Acuñar tokens ERC-20 al propietario, incluyendo el assetId como parámetro
+        productionToken.mint(msg.sender, _quantity, _assetId);
 
         // Emitir evento
         emit ProductionRecorded(
@@ -130,7 +142,8 @@ contract ProductionManager is AccessControl {
             _assetId,
             _quantity,
             _unit,
-            block.timestamp
+            block.timestamp,
+            isEUDRCompliant
         );
 
         return newProductionId;
