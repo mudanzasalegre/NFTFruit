@@ -12,6 +12,8 @@
 /build
 
 # misc
+/src/reportWebVitals.js
+/src/setupTests.js
 
 .env
 .DS_Store
